@@ -1,0 +1,382 @@
+---
+title: Detecting Highly Predictive Pretreatment MicroRNA Signature For Cardiac Events
+  In Lung Cancer Patients After Treatment
+author: '5724'
+date: "March 9, 2017"
+output:
+  html_document: default
+  pdf_document:
+    fig_caption: yes
+header-includes: \usepackage{setspace}\doublespacing
+---
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(readxl)
+data <- read_excel("~/Downloads/cardiac_mirna_updated.xlsx")
+library(survival)
+library(plyr)
+library(dplyr)
+library(glmnet)
+library(rms)
+library(ggplot2)
+library(survminer)
+library(corrplot)
+library(fmsb)
+library(MASS)
+library(knitr)
+library(stargazer, quietly = TRUE)
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+#Data Preprocessing
+names(data)[names(data)=="Framingham.Coronary.Heart.Disease.Risk.Score..MDCalc."] <- "F_score"
+names(data)[names(data)=="Grade 2+ Cardiac Event"] <- "status"
+names(data)[names(data)=="time.to.grade2"] <- "grade2_time"
+names(data)[names(data)=="Concurrent.chemotherapy..0.no.1.yes."] <- "chemo"
+names(data)[names(data)=="Volume Heart (cc)"] <- "volume"
+names(data)[names(data)=="D0.5cc.LQ......2.5..EQD2Gy."] <- "max_dose.5"
+names(data)[names(data)=="D2cc.LQ......2.5..EQD2Gy."] <- "max_dose2"
+
+data <- mutate(data, id = rownames(data))
+
+data$F_category <- 0
+#Categorize Framinham Score based on risk
+for (i in 1:nrow(data)) {
+  if (data$F_score[i] == "NA"){
+    data$F_category[i] = 3
+  }
+  else if (data$Gender.M.F[i] == "M") {
+    if (as.numeric(data$F_score[i]) >= 17){ 
+      data$F_category[i] = 2 #High risk
+    }
+    else if (as.numeric(data$F_score[i]) >= 12){
+      data$F_category[i] = 1 #Medium risk
+    }
+    # else low risk
+  } else{
+    if (as.numeric(data$F_score[i]) >= 25){
+      data$F_category[i] = 2
+    }
+    else if(as.numeric(data$F_score[i]) >= 20){
+      data$F_category[i] = 1
+    }
+  }
+}
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+data$SurvObj <- with(data, Surv(grade2_time,status))
+## Kaplan-Meier estimator. The "log-log" confidence interval is preferred.
+km.as.one <- survfit(SurvObj ~ 1, data = data, conf.type = "log-log")
+#plot(km.as.one)
+km.by.f <- survfit(SurvObj ~ F_category, data = data, conf.type = "log-log")
+#km.by.f <- npsurv(SurvObj ~ F_category, data = data, conf.type = "log-log")
+#survplot(km.by.f, main = 'Patients stratified by Framingham Category', xlab = 'Time (Months)', ylab = 'Fraction surviving', ci='none')
+```
+
+```{r, fig.width=7, fig.height=4, echo=FALSE,message=FALSE,warning=FALSE, fig.cap="Kaplan-Meier Curves for three Framingham Categories"}
+ggsurvplot(km.by.f,main = 'Patients stratified by Framingham Category', xlab = 'Time (Months)', ylab = 'Fraction Without Event')
+```
+
+```{r,message=FALSE,warning=FALSE,results='asis'}
+fit <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category,data)
+sum_1 <- summary(fit)
+c_index <- sum_1$concordance
+stargazer(fit,type = 'html',title="Model 1 Results")
+```
+
+```{r,message=FALSE,warning=FALSE}
+#Fit Cox PH Model without the microRNAs
+
+#Diagonose the model by plotting residual plots
+residual_plots <- function(fit){
+  deviance <- resid(fit, type="deviance", collapse=data$id)
+  pre <- predict(fit,type="risk",se.fit=TRUE)
+  #plot(deviance,pre$fit) #Plot deviance residuals against fitted value
+  plot(deviance,data$id, xlab = 'Deviance Residuals', ylab = 'Patients Id') #Plot deviance residuals against id
+}
+```
+
+```{r, fig.width=7, fig.height=4, echo=FALSE,message=FALSE,warning=FALSE, fig.cap="Deviance Residual Plot of Model 1"}
+residual_plots(fit)
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+#Interpret the prediction results
+accuracy <- function(fit){
+  lp.pred <- predict(fit,type="lp",data=data)
+  base <- basehaz(fit)
+  pred_list <- list()
+  target_list <- list()
+  
+  Pred.val <- base[32,1]*exp(lp.pred)
+  Pred.target <- ifelse(Pred.val>median(Pred.val),1,0)
+  target <- ifelse(data$grade2_time<=12,data$status,0)
+  
+  print(Pred.val)
+  print(summary(Pred.val))
+  plot(Pred.val)
+  print(Pred.target)
+  print(target)
+  
+  #Create a confusion matrix
+  tp<-0
+  tn<-0
+  fp<-0
+  fn<-0
+  for (i in 1:length(target)){
+    if (Pred.target[i] == 1 & target[i] == 1) tp <- tp + 1
+    if (Pred.target[i] == 1 & target[i] == 0) fp <- fp + 1
+    if (Pred.target[i] == 0 & target[i] == 1) fn <- fn + 1
+    if (Pred.target[i] == 0 & target[i] == 0) tn <- tn + 1
+  }
+  percent <- function(x, digits = 2, format = "f", ...) {
+    paste0(formatC(100 * x, format = format, digits = digits, ...), "%")
+  }
+  x <- c(tp/63,fp/63,fn/63,tn/63)
+  confusion <- matrix(percent(x),ncol=2,byrow=TRUE)
+  rownames(confusion) <- c("High Risk","Low Risk")
+  colnames(confusion) <- c("Event","No Event")
+  confusion <- as.table(confusion)
+  print(confusion)
+  accuracy = percent((tp+tn)/63)
+  print(accuracy)
+  
+  x2 <- c(tp/(tp+fp),fp/(tp+fp),fn/(tn+fn),tn/(tn+fn))
+  confusion2 <- matrix(percent(x2),ncol=2,byrow=TRUE)
+  rownames(confusion2) <- c("High Risk","Low Risk")
+  colnames(confusion2) <- c("Event","No Event")
+  confusion2 <- as.table(confusion2)
+  print(confusion2)
+}
+accuracy(fit)
+```
+
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+data2 <- data[,c(51,54,56:117)]
+microRNA <- data[,c(56:117)]
+```
+
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+#Fit Cox PH Model with subset of MicroRNAs
+x <- model.matrix(~.-status-grade2_time,data2)
+y <- Surv(data2$grade2_time,data2$status)
+
+Lambdas <- function(...) {
+  cv <- cv.glmnet(...)
+  return(data.table(cvm=cv$cvm, lambda=cv$lambda))
+}
+
+OptimLambda <- function(k, ...) {
+  #Source: http://stats.stackexchange.com/questions/97777/variablity-in-cv-glmnet-results
+  require(parallel)
+  require(data.table)
+  MSEs <- data.table(rbind.fill(mclapply(seq(k), function(dummy) Lambdas(...))))
+  return(MSEs[, list(mean.cvm=mean(cvm)), lambda][order(mean.cvm)][1]$lambda)
+}
+
+opt_lambda <- OptimLambda(k=100,x,y,family="cox",maxit=1000)
+
+#We got 2 possible optimal lambdas: 0.2 and 0.031
+
+fit2 <- glmnet(x,y,family="cox",maxit=1000)
+#plot(fit2,label='T')
+#plot(cv.fit2)
+#Coefficients <- coef(fit2, s = 0.2)
+Coefficients2 <- coef(fit2, s = 0.031)
+#Coefficients <- coef(fit2, s = cv.fit2$lambda.1se)
+Active.Index <- which(Coefficients2 != 0)
+Active.Coefficients <- Coefficients2[Active.Index]
+
+fit3 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NC08+NF10,data)
+deviance3 <- resid(fit3, type="deviance", collapse=data$id)
+
+fit4 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA06+NA07+NA12+NB04+NB07+NB08+NC04+ND03+ND11+NE01+NE03+NE04+NE06+NE10+NF01+NF03+NF09+NF10+NG06+NG10+NG11,data)
+residual_plots(fit4)
+deviance4 <- resid(fit4, type="deviance", collapse=data$id)
+
+
+vif_func<-function(in_frame,thresh=10,trace=T,...){
+  
+  #Source: https://gist.github.com/fawda123/4717702
+
+  require(fmsb)
+  
+  if(class(in_frame) != 'data.frame') in_frame<-data.frame(in_frame)
+  
+  #get initial vif value for all comparisons of variables
+  vif_init<-NULL
+  var_names <- names(in_frame)
+  for(val in var_names){
+      regressors <- var_names[-which(var_names == val)]
+      form <- paste(regressors, collapse = '+')
+      form_in <- formula(paste(val, '~', form))
+      vif_init<-rbind(vif_init, c(val, VIF(lm(form_in, data = in_frame, ...))))
+      }
+  vif_max<-max(as.numeric(vif_init[,2]), na.rm = TRUE)
+
+  if(vif_max < thresh){
+    if(trace==T){ #print output of each iteration
+        prmatrix(vif_init,collab=c('var','vif'),rowlab=rep('',nrow(vif_init)),quote=F)
+        cat('\n')
+        cat(paste('All variables have VIF < ', thresh,', max VIF ',round(vif_max,2), sep=''),'\n\n')
+        }
+    return(var_names)
+    }
+  else{
+
+    in_dat<-in_frame
+
+    #backwards selection of explanatory variables, stops when all VIF values are below 'thresh'
+    while(vif_max >= thresh){
+      
+      vif_vals<-NULL
+      var_names <- names(in_dat)
+        
+      for(val in var_names){
+        regressors <- var_names[-which(var_names == val)]
+        form <- paste(regressors, collapse = '+')
+        form_in <- formula(paste(val, '~', form))
+        vif_add<-VIF(lm(form_in, data = in_dat, ...))
+        vif_vals<-rbind(vif_vals,c(val,vif_add))
+        }
+      max_row<-which(vif_vals[,2] == max(as.numeric(vif_vals[,2]), na.rm = TRUE))[1]
+
+      vif_max<-as.numeric(vif_vals[max_row,2])
+
+      if(vif_max<thresh) break
+      
+      if(trace==T){ #print output of each iteration
+        prmatrix(vif_vals,collab=c('var','vif'),rowlab=rep('',nrow(vif_vals)),quote=F)
+        cat('\n')
+        cat('removed: ',vif_vals[max_row,1],vif_max,'\n\n')
+        flush.console()
+        }
+
+      in_dat<-in_dat[,!names(in_dat) %in% vif_vals[max_row,1]]
+
+      }
+
+    return(names(in_dat))
+    
+    }
+  
+  }
+
+#Multicollinearity check: since multicollinearity can reduce predictive power. If high bivariate correlations are present, we can delete one of the two variables. However, this may not always be sufficient.
+correlations <- cor(data2[Active.Index+1])
+corrplot(correlations, method = "square")
+vif_func(data2[Active.Index+1],thresh=10)
+
+fit5 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+ND11+NE01+NE03+NE10+NG06,data)
+
+sum_2 <- summary(fit3)
+c_index_2 <- sum_2$concordance
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+data3 <- data2[Active.Index+1]
+x2 <- model.matrix(~.,data3)
+lambda_list <- c()
+for (i in (1:10)){
+  opt_lambda_2 <- OptimLambda(k=100,x2,y,family="cox",maxit=1000)
+  lambda_list <- c(lambda_list,opt_lambda_2)
+}
+fit6 <- glmnet(x2,y,family="cox",maxit=1000)
+#Coefficients3 <- coef(fit6, s = 0.2)
+Coefficients4 <- coef(fit6, s = 0.021)
+Active.Index_2 <- which(Coefficients4 != 0)
+Active.Coefficients_2 <- Coefficients4[Active.Index_2]
+#NA06 and NE04 are removed
+fit7 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA07+NA12+NB04+NB07+NB08+NC04+ND03+ND11+NE01+NE03+NE06+NE10+NF01+NF03+NF09+NF10+NG06+NG10+NG11,data)
+#Increased Accuracy and lowered BIC!
+#Accuracy: 82.54%, BIC: 174.7493
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+#Stepwise Variable Selection by AIC based on fit7
+step <- stepAIC(fit7, direction="both")
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+fit9 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA07+NB04+NB07+NB08+ND03+ND11+NE01+NE03+NE06+NE10+NF01+NF03+NF09+NG06,data)
+```
+
+```{r,results='asis'}
+stargazer(fit4,fit7,fit9,title="Model Comparison", align=TRUE,type = 'html')
+```
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+#AIC Comparison
+#extractAIC(fit)
+# extractAIC(fit4)
+# extractAIC(fit7)
+# #extractAIC(fit8)
+# extractAIC(fit9)
+# #BIC Comparison
+#extractAIC(fit,k=log(n))
+# extractAIC(fit4,k=log(n))
+# extractAIC(fit7,k=log(n))
+# #extractAIC(fit8,k=log(n))
+# extractAIC(fit9,k=log(n))
+sum_1 <- summary(fit)
+sum_4 <- summary(fit4)
+sum_7 <- summary(fit7)
+#sum_8 <- summary(fit8)
+sum_9 <- summary(fit9)
+sum_1$concordance
+sum_4$concordance
+sum_7$concordance
+#sum_8$concordance
+sum_9$concordance
+deviance <- resid(fit, type="deviance", collapse=data$id)
+deviance4 <- resid(fit4, type="deviance", collapse=data$id)
+deviance7 <- resid(fit7, type="deviance", collapse=data$id)
+#deviance8 <- resid(fit8, type="deviance", collapse=data$id)
+deviance9 <- resid(fit9, type="deviance", collapse=data$id)
+summary(deviance)
+summary(deviance4)
+summary(deviance7)
+#summary(deviance8)
+summary(deviance9)
+sd(deviance)
+sd(deviance4)
+sd(deviance7)
+#sd(deviance8)
+sd(deviance9)
+accuracy(fit) #69.84%
+accuracy(fit4) #79.37%
+accuracy(fit7) #82.54%
+#accuracy(fit8) #79.37%
+accuracy(fit9) #82.54%
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+lp.pred <- predict(fit9,type="lp",data=data)
+base <- basehaz(fit9)
+
+sig <- exp(lp.pred)
+data$Pred.target <- ifelse(sig>quantile(sig,0.75),3,ifelse(sig>median(sig),2,ifelse(sig>quantile(sig,0.25),1,0)))
+data$SurvObj <- with(data, Surv(grade2_time,status))
+km.by.p <- survfit(SurvObj ~ Pred.target, data = data, conf.type = "log-log")
+```
+
+```{r, fig.width=7, fig.height=4, echo=FALSE,message=FALSE,warning=FALSE, fig.cap="K-M Plot of Model 4"}
+ggsurvplot(km.by.p,main = 'Patients stratified by Predicted Risk', xlab = 'Time (Months)', ylab = 'Fraction Without Event')
+```
+
+```{r,message=FALSE,warning=FALSE,results='hide'}
+lp.pred_1 <- predict(fit,type="lp",data=data)
+base <- basehaz(fit)
+val1 <- exp(lp.pred_1)
+data$Pred.target_1 <- ifelse(val1>quantile(val1,0.75),3,ifelse(val1>median(val1),2,ifelse(val1>quantile(val1,0.25),1,0)))
+data$SurvObj <- with(data, Surv(grade2_time,status))
+km.by.p_1 <- survfit(SurvObj ~ Pred.target_1, data = data, conf.type = "log-log")
+```
+
+```{r, fig.width=7, fig.height=4, echo=FALSE,message=FALSE,warning=FALSE, fig.cap="K-M Plot of Model 1"}
+ggsurvplot(km.by.p_1,main = 'Patients stratified by Predicted Risk', xlab = 'Time (Months)', ylab = 'Fraction Without Event')
+```

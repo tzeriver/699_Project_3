@@ -1,0 +1,550 @@
+---
+title: "Detecting Highly Predictive Pretreatment MicroRNA Signature For Cardiac Events In Lung Cancer Patients After Treatment"
+author: "5724"
+date: "March 9, 2017"
+header-includes:
+    - \usepackage{setspace}\doublespacing
+output:
+  pdf_document:
+    fig_caption: yes
+bibliography: reference.bib
+---
+<!-- #Abstract -->
+<!-- In this study, we performed survival analysis on 63 patients with non-small-cell lung cancer after conformal radiotherapy, in order to find a highly predictive pattern of microRNA signature that could predict the risk of having cardiac events greater than grade 2 after treatment. By building a Cox proportional hazards model with elastic net penalty and stepwise regression, we selected 15 microRNAs that could predict cardiac events better than just using baseline variables such as Framingham Risk Score. -->
+
+<!-- #Introduction -->
+<!-- MicroRNAs (miRNAs) are small endogenous ~22 nucleotides RNAs that regulate the expression of complementary messenger RNAs [@a][@b]. miRNA regulation can be involved in the cell developmental fate decisions, but can also have more subtle roles in buffering stochastic fluctuations in gene expression [@c]. Therefore, microRNA signature can serve as promising biomarkers for early detection and prognosis of human cancer and many other human diseases. In this study, our objective is to determine whether microRNA signature can predict the risk of cardiac event at certain time points after the conformal radiotherapy for patients with non-small-cell lung cancer, and if so, what the predictive pattern of microRNA is. Specifically, we are looking at whether the microRNA signature can improve the accuracy of prediction of the risk of having cardiac events, which is currently based on baseline information at treatment, such as age, gender, smoking status, cardiac event history, comorbid status etc. -->
+
+<!-- #Methods -->
+<!-- Clinical and biomarker data were collected from 63 patients with non-small-cell lung cancer, who were treated at University of Michigan Hospital and Veterans Hospital in Ann Arbor. The treatment start date ranged from 2004 to 2011, and patients were followed up after treatment until they died or left the study.  -->
+
+<!-- One of the main measures of the risk of future cardiac event provided in the data was the Framingham Coronary Heart Disease Risk Score, which was a gender-specific algorithm used to estimate the 10-year cardiovascular risk of an individual. This score was only defined for patients who did not have baseline cardiac disease, and in the data they were represented as "NA". Therefore, we decided to first categorize the Framingham Score based on gender and risk level, and then assign a score to those with cardiac event history. -->
+
+<!-- After data preprocessing, we performed survival analysis by building Cox proportional hazards models. Our methods took the following steps:  -->
+<!-- 1. Fit a Cox proportional hazards model with only selected baseline predictors (without the microRNAs). We named this model as Model 1, and it would serve as a benchmark for model comparison.  -->
+<!-- 2. Fit a Cox proportional hazards model with only the 61 microRNAs, and used elastic-net penalty and 10-fold cross validation to find the most representative subset of microRNAs. -->
+<!-- 3. Checked if multicollinearity was an issue by constructing a correlation matrix, and comparing variance inflation factors (VIF), and removed predictors with high VIFs if there were any. We named the model we had after this step as Model 2. -->
+<!-- 4. Repeated Step 2 with the subset of microRNAs we currently had until no more microRNAs were screened. (Model 3) -->
+<!-- 5. Performed a stepwise regression on Model 3 to further reduce the number of predictors. (Model 4) -->
+<!-- For each step in step 2-5, we added the subsets of microRNAs as predictors into our benchmark model (Model 1), and recorded the regression results, AIC, BIC, etc., in order to choose our final model. -->
+
+
+<!-- #Results -->
+<!-- The patients in the data were treated in two sites: 23 (36.51%) at the University Hostital, and 40 (63.49%) at the Veterans Hospital. The mean age of the patients at baseline was 66.4, ranged from 45.30 to 84.60. The majority of the patients were white male (48 (76.19%) male and 59 (93.65%) white). The mean follow-up time was 30.62 months, ranged from 2.70 months to 110.10 months, with 49 (77.78%) died during follow-up. The outcome variables we were interested in were the grade two cardiac event status, which indicates whether the patients had a cardiac event that had a grade of at least two, and the time in months from the start of the treatment to the first grade two events. In the data, 28 (44,44%) of the patients had a grade two cardiac events. -->
+
+<!-- Based on the scoring system available online ^[https://en.wikipedia.org/wiki/Framingham_Risk_Score], we categorized the Framingham Score as in Table 1. Among the 63 patients, 19 were categorized as extremely high risk, 17 were categorized as high risk, 8 were categorized as intermediate risk, and 19 were categorized as low risk. -->
+
+<!-- \begin{table} -->
+<!-- \centering -->
+<!-- \caption{Framingham Score Categorization} -->
+<!-- \begin{tabular}{ p{4cm} p{4cm} p{4cm} p{4cm} } -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- Category & Risk Level & Men & Women \\ [1ex] -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- 3 & Extremely High Risk & Pre-existing Cardiac Disease & Pre-existing Cardiac Disease \\ [1ex] -->
+<!-- 2 & High Risk & F-score >= 17 & F-score >= 25 \\ [1ex] -->
+<!-- 1 & Intermediate Risk & 12 <= F-score < 17 & 20 <= F-score < 25 \\ [1ex] -->
+<!-- 0 & Low Risk & F-score < 12 & F-score < 20 \\ [1ex] -->
+<!-- \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+<!-- Figure 1 showed the Kaplan-Meier Curve for the four Framingham categories. We could observe that patients in low risk category had a higher survival probability than patients in the other three categories. However, the differences among the other three categories were not obvious. This told us that Framingham category might be a good predictor of cardiac events, but there was still space for improvemnets. -->
+
+<!-- We first fit a Cox model with T-stage, heart mean dose, and Framingham category: -->
+<!-- $$ -->
+<!-- \lambda_i(t) = \lambda_0(t)exp(\beta_1*T.Stage + \beta_2*Hart_Meandose + \beta_3*F_Category) -->
+<!-- $$ -->
+<!-- The outcome variable was the risk of getting greade 2+ cardiac event at time t. T stage described the size of the original (primary) tumor and whether it had invaded nearby tissue. The higher the value, the larger the size of the tumor. We predicted that larger tumor would lead to higher risk of cardiac events. "Heart mean dose" was the mean dose of radiation to the heart in gray, and we predicted that the higher the dose, the higher the risk of cardiac events. "F_Category" was the Framingham category that we created. The result was as follow: -->
+
+<!-- \begin{table} -->
+<!-- \centering -->
+<!-- \caption{Model 1 Results} -->
+<!-- \begin{tabular}{ p{4cm} p{4cm} p{4cm} p{4cm} p{4cm} } -->
+<!-- \hline \\ [-1.5ex] -->
+<!--  & coef & exp(coef) & se(coef) & Pr(>|z|) \\ [1ex] -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- T.Stage & 0.33 & 1.40 & 0.17 & 0.06\\ [1ex] -->
+<!-- Heart Meandose & 0.05 & 1.06 & 0.02 & 0.01 \\ [1ex] -->
+<!-- F Category & 0.46 & 1.59 & 0.18 & 0.01 \\ [1ex] -->
+<!-- \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+<!-- The result confirmed our predictions, with Heart_Meandose and F_category significant at 95% level, and T-Stage significant at 90% level. All three coefficients were positive. The result told us that patients with one level higher in Framingham category were 59.17% more risky in getting grade 2 cardiac event, holding all other covariates constant. Figure 2 was a residual plot in which x axis was the deviance residual, and y axis was the id of the patients. The plot showed that the residuals were randomly scattered around 0, which demonstrated that the model fit the data well.  -->
+
+<!-- We used the prediction function to generate predicted values using the Cox Model developed. We then used the basehaz function to calculate the baseline hazard at different time points. Now we could calculate the risk of having grade 2 cardiac events at different time points. We categorized the subjects into two categories: high risk and low risk, by the median of the predictive value. Table 3 was a confusion matrix that showed the proportion of true positive, false positive, true negative and false negative of the prediction at 12 months. Based on the confusion matrix, the accuracy of the prediction was 25.40% + 44.44% = 69.84% (true positive rate + true negative rate). -->
+
+<!-- \begin{table} -->
+<!-- \centering -->
+<!-- \caption{Model 1 Confusion Matrix} -->
+<!-- \begin{tabular}{ p{4cm} p{4cm} p{4cm} } -->
+<!-- \hline \\ [-1.5ex] -->
+<!--  & Event & No Event \\ [1ex] -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- High Risk & 25.40$\%$ & 23.81$\%$ \\ [1ex] -->
+<!-- Low Risk & 6.35$\%$ & 44.44$\%$ \\ [1ex] -->
+<!-- \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+<!-- ### Variable Screening -- MicroRNAs -->
+<!-- Next we fit a Cox PH Model with only the 61 microRNAs and tried to find a predictive pattern. To do the variable screening we needed to perform some types of model complexity regularization because we had more predictors than subjects otherwise.  -->
+<!-- <!-- We used the R package glmnet, which was a package that could fit a generalized linear model via penalized maximum likelihood. The glmnet function solved the following problem --> -->
+<!-- <!-- $$ min_{\beta_0,\beta}\frac{1}{N}\sum_{i=1}^{N} w_il(y_i,\beta_0+\beta^Tx_i) + \lambda[(1-\alpha)||\beta||_2^2/2 + \alpha||\beta||_1]$$, --> -->
+<!-- <!-- over a grid of values of $\lambda$ covering the entire range, where $\lambda$ is a tuning parameter that controlled the overall strength of the penalty.  --> -->
+<!-- To avoid over-fitting, we performed 10-fold cross validation by using the cv.glmnet function, and ran the function 100 times to find the best lambda, which was a tuning parameter that controlled the overall strength of penalty. However, due to the randomness of cross validation, we still got different optimal lambdas every time. So we ran the function for multiple 100-cycles and we found two lambda values that came up most often. One was 0.2, and the other was 0.031. We then plugged the variables selected by these two lambda values back to our Model 1, and we found the model with the variables selected by lambda = 0.031 had the best BIC. Therefore, our next model would contain 22 microRNAs: NA05, NA06, NA07, NA12, NB04, NB07, NB08, NC04, ND03, ND11, NE01, NE03, NE04, NE06, NE10, NF01, NF03, NF09, NF10, NG06, NG10, NG11. By adding these 22 microRNAs to our model 1, our model 2 looked like this: -->
+<!-- $$ -->
+<!-- \lambda_i(t) = \lambda_0(t)exp(\beta_1*T.Stage + \beta_2*Hart_Meandose + \beta_3*F_Category + \beta_4*NA05 + ... + \beta_{25}*NG11) -->
+<!-- $$ -->
+
+<!-- The number of microRNAs in the model was still very high, which suggested that there might be some predictors that did not contribute to the accuracy of the predictive model or might in fact decrease the accuracy of the model. Also, simple models were easier to understand and explain. Therefore, the goal of our following work was trying to reduce the complexity of the model, and at the same time keeping or improving the accuracy of the model. -->
+
+<!-- ###Multicollinearity -->
+<!-- We could reduce the number of microRNAs in our model by dealing with multicollinearity, because multicollinearity could reduce the predictive power of our model if presented. We first plotted a correlation matrix for all the 22 microRNAs we had selected. We could identify the pairs of predictors that had the highest correlation and kept only one predictor for each of those pairs. However, just looking at correlations among pairs of predictors might not be enough, because it was possible that the pairwise correlations were small, and yet a linear dependence existed among three or even more variables. Therefore, we calculated the variance inflation factors (VIF), and recursively removed the predictors that had VIF greater than a threshold. A VIF greater than 10 was often regarded as indicating multicollinearity. If we set the threshold to 10, all of the 22 variables were kept and the maximum VIF was 7.66. If we set the threshold to 5, two variables were removed. However, when we fit the Cox model with the 20 variables left, the accuracy was still the same as it was with 22 variables, but the BIC increased. If we set the threshold to 2.5, 6 variables were removed, but the accuracy was lower, and BIC higher than with 22 variables. In the end, it seemed that multicollinearity was not an issue, and keeping all the 22 microRNAs in the model was the best choice. -->
+
+<!-- ###Another run of glmnet -->
+<!-- We could further reduce the size of the feature space by performing elastic net on the 22 selected variables until no variables were removed. If we perform elastic-net again by repeating the procedure described above on the 22 selectd microRNAs, we got another 2 microRNAs removed: NA06 and NE04. And if we perform a third run of elastic-net on the 20 microRNAs, no more mircroRNAs were removed. Therefore, we had our Model 3 with 20 microRNAs: -->
+<!-- $$ -->
+<!-- \lambda_i(t) = \lambda_0(t)exp(\beta_1*T.Stage + \beta_2*Hart_Meandose + \beta_3*F_Category + \beta_4*NA05 + ... + \beta_{23}*NG11) -->
+<!-- $$ -->
+
+<!-- ###Stepwise Regression and Model Selection -->
+<!-- By performing stepwise regression on Model 3, we ended up with 15 microRNAs: NA05, NA07, NB04, NB07, NB08, ND03, ND11, NE01, NE03, NE06, NE10, NF01, NF03, NF09, NG06. This model (Model 4) gave the lowest AIC and BIC, and highest accuracy (same as Model 3). Therefore, we chose this as our final model. In Table 4 we made a comparison of the four models with respect to AIC, BIC, concordance and accuracy of prediction of the risk of getting grade 2+ cardiac event at 12 month. -->
+
+<!-- \begin{table} -->
+<!-- \centering -->
+<!-- \caption{Model Comparison} -->
+<!-- \begin{tabular}{ p{4cm} p{4cm} p{4cm} p{4cm} p{4cm} p{4cm} } -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- Model & $\#$ MicroRNAs & AIC & BIC & Concordance & Accuracy \\ [1ex] -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- 1 & 0 & 185.6 & 189.3 & 0.75 & 69.84$\%$ \\ [1ex] -->
+<!-- 2 & 22 & 147.3 & 177.8 & 0.95 & 79.37$\%$ \\ [1ex] -->
+<!-- 3 & 20 & 146.7 & 174.7 & 0.94 & 82.54$\%$  \\ [1ex] -->
+<!-- 4 & 15 & 139.6 & 161.6 & 0.94 & 82.54$\%$ \\ [1ex] -->
+<!-- \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+<!-- #Conclusion -->
+
+<!-- #Appendix -->
+
+<!-- The BIC for Model 2 was 177.8071 with 25 covariates in total, while the BIC for the original model 1 was 189.2918, with 3 covariates, which indicated that the new model fit better than the original model.  -->
+
+<!-- We calculated the deviance residuals for the new model. Optimally, the deviance residuals should be symmetric around 0 and the standard deviation should be 1. The median of the deviance residuals was -0.02, which was very close to zero, and the standard deviation was 0.79, which was close to 1. The median is closer to zero than our Model 1, whose median of deviance residuals was -0.55. This indicated that our Model 1 tended to underestimate the survival time, and our new model had a better estimation of the survival time. Also, by plotting the deviance residuals against id, we didn't see any specific pattern, which meant that the model fit the data well. -->
+
+<!-- With the new model, we got the confusion matrix as in Table 4. The accuracy of the prediction was 30.16% + 49.21% = 79.37%, which was higher than Model 1's prediction accuracy. -->
+
+<!-- \begin{table} -->
+<!-- \centering -->
+<!-- \caption{New Model Confusion Matrix} -->
+<!-- \begin{tabular}{ p{4cm} p{4cm} p{4cm} } -->
+<!-- \hline \\ [-1.5ex] -->
+<!--  & Event & No Event \\ [1ex] -->
+<!-- \hline \\ [-1.5ex] -->
+<!-- High Risk & 30.16$\%$ & 19.05$\%$ \\ [1ex] -->
+<!-- Low Risk & 1.59$\%$ & 49.21$\%$ \\ [1ex] -->
+<!-- \hline -->
+<!-- \end{tabular} -->
+<!-- \end{table} -->
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+library(readxl)
+data <- read_excel("~/Downloads/cardiac_mirna_updated.xlsx")
+library(survival)
+library(plyr)
+library(dplyr)
+library(glmnet)
+library(rms)
+library(ggplot2)
+library(survminer)
+library(corrplot)
+library(fmsb)
+library(MASS)
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+#Data Preprocessing
+names(data)[names(data)=="Framingham.Coronary.Heart.Disease.Risk.Score..MDCalc."] <- "F_score"
+names(data)[names(data)=="Grade 2+ Cardiac Event"] <- "status"
+names(data)[names(data)=="time.to.grade2"] <- "grade2_time"
+names(data)[names(data)=="Concurrent.chemotherapy..0.no.1.yes."] <- "chemo"
+names(data)[names(data)=="Volume Heart (cc)"] <- "volume"
+names(data)[names(data)=="D0.5cc.LQ......2.5..EQD2Gy."] <- "max_dose.5"
+names(data)[names(data)=="D2cc.LQ......2.5..EQD2Gy."] <- "max_dose2"
+
+data <- mutate(data, id = rownames(data))
+
+data$F_category <- 0
+#Categorize Framinham Score based on risk
+for (i in 1:nrow(data)) {
+  if (data$F_score[i] == "NA"){
+    data$F_category[i] = 3
+  }
+  else if (data$Gender.M.F[i] == "M") {
+    if (as.numeric(data$F_score[i]) >= 17){ 
+      data$F_category[i] = 2 #High risk
+    }
+    else if (as.numeric(data$F_score[i]) >= 12){
+      data$F_category[i] = 1 #Medium risk
+    }
+    # else low risk
+  } else{
+    if (as.numeric(data$F_score[i]) >= 25){
+      data$F_category[i] = 2
+    }
+    else if(as.numeric(data$F_score[i]) >= 20){
+      data$F_category[i] = 1
+    }
+  }
+}
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+data$SurvObj <- with(data, Surv(grade2_time,status))
+## Kaplan-Meier estimator. The "log-log" confidence interval is preferred.
+km.as.one <- survfit(SurvObj ~ 1, data = data, conf.type = "log-log")
+#plot(km.as.one)
+km.by.f <- survfit(SurvObj ~ F_category, data = data, conf.type = "log-log")
+#km.by.f <- npsurv(SurvObj ~ F_category, data = data, conf.type = "log-log")
+#survplot(km.by.f, main = 'Patients stratified by Framingham Category', xlab = 'Time (Months)', ylab = 'Fraction surviving', ci='none')
+```
+
+```{r, fig.width=7, fig.height=4, echo=FALSE,message=FALSE,warning=FALSE, fig.cap="Kaplan-Meier Curves for three Framingham Categories"}
+ggsurvplot(km.by.f,main = 'Patients stratified by Framingham Category', xlab = 'Time (Months)', ylab = 'Fraction Without Event')
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+fit <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category,data)
+sum_1 <- summary(fit)
+c_index <- sum_1$concordance
+sum_1
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide'}
+#Fit Cox PH Model without the microRNAs
+
+#Diagonose the model by plotting residual plots
+residual_plots <- function(fit){
+  deviance <- resid(fit, type="deviance", collapse=data$id)
+  pre <- predict(fit,type="risk",se.fit=TRUE)
+  #plot(deviance,pre$fit) #Plot deviance residuals against fitted value
+  plot(deviance,data$id, xlab = 'Deviance Residuals', ylab = 'Patients Id') #Plot deviance residuals against id
+  #martingale <- resid(fit, type="martingale", collapse=data$id)
+  #plot(martingale,data$heart_Meandose)
+}
+```
+
+```{r, fig.width=7, fig.height=4, echo=FALSE,message=FALSE,warning=FALSE, fig.cap="Deviance Residual Plot of Model 1"}
+residual_plots(fit)
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+#Interpret the prediction results
+accuracy <- function(fit){
+  lp.pred <- predict(fit,type="lp",data=data)
+  base <- basehaz(fit)
+  pred_list <- list()
+  target_list <- list()
+  
+  # for (i in 1:nrow(base)){
+  #   Pred.val <- base[i,1]*exp(lp.pred)
+  #   Pred.target <- ifelse(Pred.val>mean(Pred.val),1,0)
+  #   target <- ifelse(data$grade2_time<=base[i,2],data$status,0)
+  #   pred_list[[length(pred_list)+1]] <- list(Pred.target)
+  #   target_list[[length(target_list)+1]] <- list(target)
+  # }
+  #Maybe we are interesting in predicting the risk of cardiac event at 12 month: 0.35981158
+  #We categorize the subjects into two categories: high risk and low risk, by the median of the predictive value.
+  Pred.val <- base[32,1]*exp(lp.pred)
+  Pred.target <- ifelse(Pred.val>median(Pred.val),1,0)
+  target <- ifelse(data$grade2_time<=12,data$status,0)
+  
+  print(Pred.val)
+  print(summary(Pred.val))
+  plot(Pred.val)
+  print(Pred.target)
+  print(target)
+  
+  #Create a confusion matrix
+  tp<-0
+  tn<-0
+  fp<-0
+  fn<-0
+  for (i in 1:length(target)){
+    if (Pred.target[i] == 1 & target[i] == 1) tp <- tp + 1
+    if (Pred.target[i] == 1 & target[i] == 0) fp <- fp + 1
+    if (Pred.target[i] == 0 & target[i] == 1) fn <- fn + 1
+    if (Pred.target[i] == 0 & target[i] == 0) tn <- tn + 1
+  }
+  percent <- function(x, digits = 2, format = "f", ...) {
+    paste0(formatC(100 * x, format = format, digits = digits, ...), "%")
+  }
+  x <- c(tp/63,fp/63,fn/63,tn/63)
+  confusion <- matrix(percent(x),ncol=2,byrow=TRUE)
+  rownames(confusion) <- c("High Risk","Low Risk")
+  colnames(confusion) <- c("Event","No Event")
+  confusion <- as.table(confusion)
+  print(confusion)
+  accuracy = percent((tp+tn)/63)
+  print(accuracy)
+  
+  x2 <- c(tp/(tp+fp),fp/(tp+fp),fn/(tn+fn),tn/(tn+fn))
+  confusion2 <- matrix(percent(x2),ncol=2,byrow=TRUE)
+  rownames(confusion2) <- c("High Risk","Low Risk")
+  colnames(confusion2) <- c("Event","No Event")
+  confusion2 <- as.table(confusion2)
+  print(confusion2)
+}
+
+accuracy(fit)
+
+```
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+data2 <- data[,c(51,54,56:117)]
+microRNA <- data[,c(56:117)]
+```
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+#Fit Cox PH Model with subset of MicroRNAs
+#x <- model.matrix( ~ T.Stage+heart_Meandose+F_category+.-status-grade2_time-id, data2)
+x <- model.matrix(~.-status-grade2_time,data2)
+y <- Surv(data2$grade2_time,data2$status)
+
+#Standardize the model matrix
+#normalize <- function(x) { return ((x - mean(x)) / sd(x))}
+#x <- cbind(x[,1,drop=FALSE], apply(x[,-1], 2, normalize))
+
+#cv.fit2 <- cv.glmnet(x,y,family="cox",maxit=1000)
+### cycle for doing 100 cross validations
+### and take the average of the mean error curves
+### initialize vector for final data.frame with Mean Standard Errors
+Lambdas <- function(...) {
+  cv <- cv.glmnet(...)
+  return(data.table(cvm=cv$cvm, lambda=cv$lambda))
+}
+
+OptimLambda <- function(k, ...) {
+  require(parallel)
+  require(data.table)
+  MSEs <- data.table(rbind.fill(mclapply(seq(k), function(dummy) Lambdas(...))))
+  return(MSEs[, list(mean.cvm=mean(cvm)), lambda][order(mean.cvm)][1]$lambda)
+}
+
+opt_lambda <- OptimLambda(k=100,x,y,family="cox",maxit=1000)
+
+#We got 2 possible optimal lambdas: 0.2 and 0.031
+
+fit2 <- glmnet(x,y,family="cox",maxit=1000)
+#plot(fit2,label='T')
+#plot(cv.fit2)
+#Coefficients <- coef(fit2, s = 0.2)
+Coefficients2 <- coef(fit2, s = 0.031)
+#Coefficients <- coef(fit2, s = cv.fit2$lambda.1se)
+Active.Index <- which(Coefficients2 != 0)
+Active.Coefficients <- Coefficients2[Active.Index]
+
+fit3 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NC08+NF10,data)
+deviance3 <- resid(fit3, type="deviance", collapse=data$id)
+#63:NG11, 59:NG07, 54:NF10, 41:NE03, 25: NC08, 17: NB08
+#plot(cv.fit2,label=T)
+#l <- cv.fit2$lambda.min
+#fit2 <- glmnet(x,y,family="cox",alpha=1,nlambda=100)
+#res <- predict(fit2, s=l, type="coefficients")
+#plot(fit2,label=T)
+fit4 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA06+NA07+NA12+NB04+NB07+NB08+NC04+ND03+ND11+NE01+NE03+NE04+NE06+NE10+NF01+NF03+NF09+NF10+NG06+NG10+NG11,data)
+residual_plots(fit4)
+deviance4 <- resid(fit4, type="deviance", collapse=data$id)
+
+
+vif_func<-function(in_frame,thresh=10,trace=T,...){
+
+  require(fmsb)
+  
+  if(class(in_frame) != 'data.frame') in_frame<-data.frame(in_frame)
+  
+  #get initial vif value for all comparisons of variables
+  vif_init<-NULL
+  var_names <- names(in_frame)
+  for(val in var_names){
+      regressors <- var_names[-which(var_names == val)]
+      form <- paste(regressors, collapse = '+')
+      form_in <- formula(paste(val, '~', form))
+      vif_init<-rbind(vif_init, c(val, VIF(lm(form_in, data = in_frame, ...))))
+      }
+  vif_max<-max(as.numeric(vif_init[,2]), na.rm = TRUE)
+
+  if(vif_max < thresh){
+    if(trace==T){ #print output of each iteration
+        prmatrix(vif_init,collab=c('var','vif'),rowlab=rep('',nrow(vif_init)),quote=F)
+        cat('\n')
+        cat(paste('All variables have VIF < ', thresh,', max VIF ',round(vif_max,2), sep=''),'\n\n')
+        }
+    return(var_names)
+    }
+  else{
+
+    in_dat<-in_frame
+
+    #backwards selection of explanatory variables, stops when all VIF values are below 'thresh'
+    while(vif_max >= thresh){
+      
+      vif_vals<-NULL
+      var_names <- names(in_dat)
+        
+      for(val in var_names){
+        regressors <- var_names[-which(var_names == val)]
+        form <- paste(regressors, collapse = '+')
+        form_in <- formula(paste(val, '~', form))
+        vif_add<-VIF(lm(form_in, data = in_dat, ...))
+        vif_vals<-rbind(vif_vals,c(val,vif_add))
+        }
+      max_row<-which(vif_vals[,2] == max(as.numeric(vif_vals[,2]), na.rm = TRUE))[1]
+
+      vif_max<-as.numeric(vif_vals[max_row,2])
+
+      if(vif_max<thresh) break
+      
+      if(trace==T){ #print output of each iteration
+        prmatrix(vif_vals,collab=c('var','vif'),rowlab=rep('',nrow(vif_vals)),quote=F)
+        cat('\n')
+        cat('removed: ',vif_vals[max_row,1],vif_max,'\n\n')
+        flush.console()
+        }
+
+      in_dat<-in_dat[,!names(in_dat) %in% vif_vals[max_row,1]]
+
+      }
+
+    return(names(in_dat))
+    
+    }
+  
+  }
+
+#Multicollinearity check: since multicollinearity can reduce predictive power. If high bivariate correlations are present, we can delete one of the two variables. However, this may not always be sufficient.
+correlations <- cor(data2[Active.Index+1])
+corrplot(correlations, method = "square")
+vif_func(data2[Active.Index+1],thresh=10)
+
+#THreshold = 10
+#Keep all variables
+
+#Threshold = 5
+#"NA05" "NA06" "NA07" "NA12" "NB04" "NB07" "NB08" "NC04" "ND03" "ND11"
+#"NE03" "NE04" "NE06" "NE10" "NF01" "NF03" "NF09" "NF10" "NG10" "NG11"
+
+#Threshold = 2.5
+#"NA05" "NA06" "NA07" "NA12" "NB04" "NB08" "NC04" "ND03" "ND11" "NE06"
+#"NE10" "NF01" "NF03" "NF10" "NG10" "NG11"
+
+#fit_vif <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA06+NA07+NA12+NB04+NB08+NC04+ND03+ND11+NE06+NE10+NF01+NF03+NF10+NG10+NG11,data)
+#accuracy(fit_vif)
+#extractAIC(fit_vif,k=log(n))
+
+#Looking at correlations only among pairs of predictors, however, is limiting. It is possible that the pairwise correlations are small, and yet a linear dependence exists among three or even more variables, for example, if X3 = 2X1 + 5X2 + error, say. That's why many regression analysts often rely on what are called variance inflation factors (VIF) to help detect multicollinearity.
+
+#Can we further reduce the size of subsets by keeping only the significant ones?
+fit5 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+ND11+NE01+NE03+NE10+NG06,data)
+
+sum_2 <- summary(fit3)
+c_index_2 <- sum_2$concordance
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+data3 <- data2[Active.Index+1]
+x2 <- model.matrix(~.,data3)
+lambda_list <- c()
+for (i in (1:10)){
+  opt_lambda_2 <- OptimLambda(k=100,x2,y,family="cox",maxit=1000)
+  lambda_list <- c(lambda_list,opt_lambda_2)
+}
+fit6 <- glmnet(x2,y,family="cox",maxit=1000)
+#Coefficients3 <- coef(fit6, s = 0.2)
+Coefficients4 <- coef(fit6, s = 0.021)
+Active.Index_2 <- which(Coefficients4 != 0)
+Active.Coefficients_2 <- Coefficients4[Active.Index_2]
+#NA06 and NE04 are removed
+fit7 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA07+NA12+NB04+NB07+NB08+NC04+ND03+ND11+NE01+NE03+NE06+NE10+NF01+NF03+NF09+NF10+NG06+NG10+NG11,data)
+#Increased Accuracy and lowered BIC!
+#Accuracy: 82.54%, BIC: 174.7493
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+#Stepwise Variable Selection by AIC based on fit7
+step <- stepAIC(fit7, direction="both")
+fit9 <- coxph(Surv(grade2_time,status)~T.Stage+heart_Meandose+F_category+NA05+NA07+NB04+NB07+NB08+ND03+ND11+NE01+NE03+NE06+NE10+NF01+NF03+NF09+NG06,data)
+```
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE,results='hide',include=FALSE}
+#AIC Comparison
+extractAIC(fit)
+# extractAIC(fit4)
+# extractAIC(fit7)
+# #extractAIC(fit8)
+# extractAIC(fit9)
+# #BIC Comparison
+extractAIC(fit,k=log(n))
+# extractAIC(fit4,k=log(n))
+# extractAIC(fit7,k=log(n))
+# #extractAIC(fit8,k=log(n))
+# extractAIC(fit9,k=log(n))
+sum_1 <- summary(fit)
+sum_4 <- summary(fit4)
+sum_7 <- summary(fit7)
+#sum_8 <- summary(fit8)
+sum_9 <- summary(fit9)
+sum_1$concordance
+sum_4$concordance
+sum_7$concordance
+#sum_8$concordance
+sum_9$concordance
+deviance <- resid(fit, type="deviance", collapse=data$id)
+deviance4 <- resid(fit4, type="deviance", collapse=data$id)
+deviance7 <- resid(fit7, type="deviance", collapse=data$id)
+#deviance8 <- resid(fit8, type="deviance", collapse=data$id)
+deviance9 <- resid(fit9, type="deviance", collapse=data$id)
+summary(deviance)
+summary(deviance4)
+summary(deviance7)
+#summary(deviance8)
+summary(deviance9)
+sd(deviance)
+sd(deviance4)
+sd(deviance7)
+#sd(deviance8)
+sd(deviance9)
+accuracy(fit) #69.84%
+accuracy(fit4) #79.37%
+accuracy(fit7) #82.54%
+#accuracy(fit8) #79.37%
+accuracy(fit9) #82.54%
+```
+
+```{r}
+lp.pred <- predict(fit9,type="lp",data=data)
+base <- basehaz(fit9)
+
+sig <- exp(lp.pred)
+data$Pred.target <- ifelse(sig>quantile(sig,0.75),3,ifelse(sig>median(sig),2,ifelse(sig>quantile(sig,0.25),1,0)))
+data$SurvObj <- with(data, Surv(grade2_time,status))
+km.by.p <- survfit(SurvObj ~ Pred.target, data = data, conf.type = "log-log")
+ggsurvplot(km.by.p,main = 'Patients stratified by Predicted Risk', xlab = 'Time (Months)', ylab = 'Fraction Without Event')
+
+lp.pred_1 <- predict(fit,type="lp",data=data)
+base <- basehaz(fit)
+
+val1 <- exp(lp.pred_1)
+data$Pred.target_1 <- ifelse(val1>quantile(val1,0.75),3,ifelse(val1>median(val1),2,ifelse(val1>quantile(val1,0.25),1,0)))
+data$SurvObj <- with(data, Surv(grade2_time,status))
+km.by.p_1 <- survfit(SurvObj ~ Pred.target_1, data = data, conf.type = "log-log")
+ggsurvplot(km.by.p_1,main = 'Patients stratified by Predicted Risk', xlab = 'Time (Months)', ylab = 'Fraction Without Event')
+```
+
+
+#Reference
